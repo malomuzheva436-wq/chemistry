@@ -1,0 +1,14 @@
+{
+  "files": {
+    "main.css": "/malomuzheva436-wq/chemistry.git/static/css/main.c189d7b0.css",
+    "main.js": "/malomuzheva436-wq/chemistry.git/static/js/main.aabe75d3.js",
+    "static/media/welcome.webp": "/malomuzheva436-wq/chemistry.git/static/media/welcome.c9e1a4676f4bafacaef2.webp",
+    "index.html": "/malomuzheva436-wq/chemistry.git/index.html",
+    "main.c189d7b0.css.map": "/malomuzheva436-wq/chemistry.git/static/css/main.c189d7b0.css.map",
+    "main.aabe75d3.js.map": "/malomuzheva436-wq/chemistry.git/static/js/main.aabe75d3.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.c189d7b0.css",
+    "static/js/main.aabe75d3.js"
+  ]
+}
