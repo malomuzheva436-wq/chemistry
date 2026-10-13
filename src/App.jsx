@@ -1,4 +1,4 @@
-import {HashRouter as Router, Routes, Route} from 'react-router-dom';
+import {HashRouter, Routes, Route} from 'react-router-dom';
 import React from 'react';
 import { Welcome } from './page/Welcome';
 import {Osnova} from './page/Osnova';
