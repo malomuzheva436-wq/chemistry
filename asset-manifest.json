@@ -1,14 +1,14 @@
 {
   "files": {
-    "main.css": "/malomuzheva436-wq/chemistry.git/static/css/main.c189d7b0.css",
-    "main.js": "/malomuzheva436-wq/chemistry.git/static/js/main.aabe75d3.js",
-    "static/media/welcome.webp": "/malomuzheva436-wq/chemistry.git/static/media/welcome.c9e1a4676f4bafacaef2.webp",
-    "index.html": "/malomuzheva436-wq/chemistry.git/index.html",
-    "main.c189d7b0.css.map": "/malomuzheva436-wq/chemistry.git/static/css/main.c189d7b0.css.map",
-    "main.aabe75d3.js.map": "/malomuzheva436-wq/chemistry.git/static/js/main.aabe75d3.js.map"
+    "main.css": "./static/css/main.ab5b8835.css",
+    "main.js": "./static/js/main.aabe75d3.js",
+    "static/media/welcome.webp": "./static/media/welcome.c9e1a4676f4bafacaef2.webp",
+    "index.html": "./index.html",
+    "main.ab5b8835.css.map": "./static/css/main.ab5b8835.css.map",
+    "main.aabe75d3.js.map": "./static/js/main.aabe75d3.js.map"
   },
   "entrypoints": [
-    "static/css/main.c189d7b0.css",
+    "static/css/main.ab5b8835.css",
     "static/js/main.aabe75d3.js"
   ]
 }
