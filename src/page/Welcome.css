@@ -1,0 +1,183 @@
+/* ===== Контейнер: фиксирован на весь экран, прокрутка внутри ===== */
+.welcome-container {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;   /* ← вместо overflow: hidden */
+  display: flex;
+  padding: 24px 16px;
+  box-sizing: border-box;
+  background-color: #0d3b2a; /* ← добавить эту строку */
+  background-image: linear-gradient(
+      rgba(4, 26, 17, 0.75),
+      rgba(4, 26, 17, 0.75)
+    ),
+    url('../picture/welcome.webp');
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ===== Карточка: широкая и центрированная по обеим осям ===== */
+.welcome-content {
+  margin: auto; /* центр по горизонтали И вертикали, без обрезки верха */
+  width: min(1100px, 94%);
+  box-sizing: border-box;
+
+  background: rgba(10, 40, 27, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(183, 228, 196, 0.25);
+  border-radius: 24px;
+  padding: 40px 56px;
+  color: #eafff3;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  animation: fadeInUp 0.7s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.welcome-title {
+  font-size: 52px;
+  font-weight: 800;
+  margin: 0 0 14px 0;
+  letter-spacing: -1px;
+  color: #ffffff;
+}
+
+.welcome-title-accent {
+  color: #95d5b2;
+}
+
+.welcome-subtitle {
+  font-size: 22px;
+  font-weight: 500;
+  margin: 0 0 10px 0;
+  color: #b7e4c7;
+}
+
+.welcome-description {
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+  color: #d8f3e2;
+}
+
+.welcome-features-title {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 14px 0;
+  color: #95d5b2;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ===== Список возможностей: две колонки, компактнее ===== */
+.welcome-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 28px 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 900px) {
+  .welcome-features {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.welcome-feature {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: rgba(149, 213, 178, 0.1);
+  border: 1px solid rgba(149, 213, 178, 0.18);
+  border-radius: 12px;
+  transition: all 0.25s ease;
+}
+
+.welcome-feature:hover {
+  background: rgba(149, 213, 178, 0.2);
+  border-color: rgba(149, 213, 178, 0.45);
+  transform: translateX(6px);
+}
+
+.welcome-feature-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.welcome-feature-text {
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: #eafff3;
+}
+
+/* ===== Кнопка «Начать» ===== */
+.welcome-start-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 46px;
+  background: linear-gradient(135deg, #2e9e6b 0%, #4ec78a 100%);
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(46, 158, 107, 0.35);
+  transition: all 0.25s ease;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+}
+
+.welcome-start-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(46, 158, 107, 0.5);
+  background: linear-gradient(135deg, #4ec78a 0%, #5fd999 100%);
+}
+
+.welcome-start-btn:active {
+  transform: translateY(0);
+}
+
+.welcome-arrow {
+  transition: transform 0.25s ease;
+  font-size: 22px;
+}
+
+.welcome-start-btn:hover .welcome-arrow {
+  transform: translateX(6px);
+}
+
+/* ===== Адаптивность ===== */
+@media (max-width: 768px) {
+  .welcome-container {
+    padding: 16px 8px;
+  }
+
+  .welcome-content {
+    padding: 28px 22px;
+  }
+
+  .welcome-title {
+    font-size: 40px;
+  }
+
+  .welcome-subtitle {
+    font-size: 18px;
+  }
+}
