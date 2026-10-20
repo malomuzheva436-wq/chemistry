@@ -1,8 +1,5 @@
-// Uravnenia.js
-// Список химических уравнений для решения задач.
-//
-// Коэффициенты обязательны: программа использует их
-// как мольные соотношения веществ.
+import { buildExchangeReaction } from './ExchangeReaction';
+
 function normalizeText(value) {
   return String(value ?? '')
     .trim()
@@ -188,7 +185,6 @@ export const REACTIONS = {
   
   // Разложение
   'CuSO4*5H2O': 'CuSO4*5H2O --> CuSO4 + 5H2O',
-  H2O2: '2H2O2 --> 2H2O + O2',
   // ОРГАНИКА
   Al4C3H2O: 'Al4C3 + 12H2O --> 3CH4 + 4Al(OH)3',
   CaC2H2O: 'CaC2 + 2H2O --> C2H2 + Ca(OH)2',
@@ -434,7 +430,32 @@ export function findReactionByReactants(reactants = [], catalyst = null) {
     }
   }
 
-  if (!best) return null;
+  if (!best) {
+    // ===== АВТОПОСТРОЕНИЕ РЕАКЦИИ ОБМЕНА =====
+    // Важно: передаём формулы БЕЗ normalizeText — разборщик
+    // чувствителен к регистру символов элементов!
+    if (clean.length === 2) {
+      const f1 = baseFormula(clean[0]);
+      const f2 = baseFormula(clean[1]);
+      const auto = buildExchangeReaction(f1, f2);
+
+      if (auto && auto.occurs) {
+        return {
+          key: 'auto',
+          leftText: auto.leftText,
+          rightText: auto.rightText,
+          catalyst: '',
+          auto: true,
+          fullIonic: auto.fullIonic,
+          netIonic: auto.netIonic,
+          reason: auto.reason,
+          molecular: auto.molecular,
+        };
+      }
+    }
+
+    return null;
+  }
 
   return {
     key: best.key,

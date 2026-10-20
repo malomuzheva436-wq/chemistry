@@ -55,7 +55,7 @@ function normalizeText(value) {
 // =====================================================
 // Разбор части формулы в состав: Ca(OH)2 → { Ca: 1, O: 2, H: 2 }
 // =====================================================
-function parsePartToAtoms(text) {
+export function parsePartToAtoms(text) {
   if (!/^([A-Z][a-z]?\d*|[([]|[)\]]\d*)+$/.test(text)) return null;
 
   const stack = [{}];
