@@ -1,4 +1,5 @@
 import { buildExchangeReaction } from './ExchangeReaction';
+import { buildMetalAcidReaction } from './MetalAcidReaction';
 
 function normalizeText(value) {
   return String(value ?? '')
@@ -322,17 +323,7 @@ export function getCoefficient(keyOrText, formula) {
 
   return found ? found.coefficient : null;
 }
-// Собирает сторону уравнения в текст с коэффициентами:
-// [{2, KNO3}] → "2KNO3";  [{2, KNO2}, {1, O2}] → "2KNO2 + O2"
-function sideToText(items) {
-  return items
-    .map((i) => {
-      if (i.coefficientRaw) return `${i.coefficientRaw}${i.formula}`;
 
-      return i.coefficient > 1 ? `${i.coefficient}${i.formula}` : i.formula;
-    })
-    .join(' + ');
-}
 
 // ===== Валентность металла-заглушки =====
 // Римские числительные перечисляем от длинных к коротким,
@@ -430,10 +421,8 @@ export function findReactionByReactants(reactants = [], catalyst = null) {
     }
   }
 
-  if (!best) {
+    if (!best) {
     // ===== АВТОПОСТРОЕНИЕ РЕАКЦИИ ОБМЕНА =====
-    // Важно: передаём формулы БЕЗ normalizeText — разборщик
-    // чувствителен к регистру символов элементов!
     if (clean.length === 2) {
       const f1 = baseFormula(clean[0]);
       const f2 = baseFormula(clean[1]);
@@ -452,15 +441,24 @@ export function findReactionByReactants(reactants = [], catalyst = null) {
           molecular: auto.molecular,
         };
       }
+
+      // ===== АВТОПОСТРОЕНИЕ МЕТАЛЛ + КИСЛОТА =====
+      // Если обмен не сработал — пробуем H2SO4 или HNO3
+      const redox = buildMetalAcidReaction(f1, f2, catalyst, userValence);
+
+      if (redox && redox.occurs) {
+        return {
+          key: 'auto',
+          leftText: redox.leftText,
+          rightText: redox.rightText,
+          catalyst: catalyst || '',
+          auto: true,
+          reason: redox.reason,
+          molecular: redox.molecular,
+        };
+      }
     }
 
     return null;
   }
-
-  return {
-    key: best.key,
-    leftText: sideToText(best.parsed.left),
-    rightText: sideToText(best.parsed.right),
-    catalyst: best.condition || '',
-  };
 }

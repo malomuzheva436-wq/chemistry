@@ -138,7 +138,7 @@ function gcd(a, b) {
   return b === 0 ? a : gcd(b, a % b);
 }
 
-function ionFormula(cat, catCharge, an, anCharge) {
+export function ionFormula(cat, catCharge, an, anCharge) {
   const g = gcd(catCharge, anCharge);
   const catIdx = anCharge / g;
   const anIdx = catCharge / g;
@@ -166,7 +166,7 @@ function anionText(an, charge) {
 }
 
 // Подбор коэффициентов перебором 1..6 (переиспользуем разбор атомов)
-function balanceEquation(leftF, rightF, max = 6) {
+export function balanceEquation(leftF, rightF, max = 6) {
   const L = leftF.map((f) => parsePartToAtoms(f));
   const R = rightF.map((f) => parsePartToAtoms(f));
 
