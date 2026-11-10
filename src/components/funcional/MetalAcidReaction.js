@@ -1,10 +1,9 @@
 // MetalAcidReaction.js
-// Автоматическое составление реакций металлов с H2SO4 и HNO3
-// с поддержкой суффикса 'k' для концентрированных кислот
+// Реакции металлов с кислотами: окислительные (H2SO4k, HNO3)
+// и вытеснение водорода (HCl, HBr, H3PO4, разб. H2SO4)
 
 import { ionFormula, balanceEquation } from './ExchangeReaction';
 
-// Ряд активности
 const SERIES = [
   'Li', 'Rb', 'K', 'Ba', 'Sr', 'Ca', 'Na', 'Mg', 'Al', 'Mn', 'Zn',
   'Cr', 'Fe', 'Cd', 'Co', 'Ni', 'Sn', 'Pb', 'H', 'Sb', 'Bi',
@@ -13,28 +12,50 @@ const SERIES = [
 
 const PASSIVATING = new Set(['Fe', 'Al', 'Cr', 'Co', 'Ni']);
 
+// Кислоты-неокислители: с металлами до H дают соль + H2
+const NONOX = new Set(['HCl', 'HBr', 'H3PO4']);
+
+// Кислота → [анион, заряд аниона]
+const ACID_ANION = {
+  H2SO4: ['SO4', 2],
+  HNO3: ['NO3', 1],
+  HCl: ['Cl', 1],
+  HBr: ['Br', 1],
+  H3PO4: ['PO4', 3],
+};
+
 const VALENCE_OX = {
   Li: 1, Rb: 1, K: 1, Ba: 2, Sr: 2, Ca: 2, Na: 1, Mg: 2, Al: 3,
   Mn: 2, Zn: 2, Cr: 3, Fe: 3, Cd: 2, Co: 2, Ni: 2, Sn: 2, Pb: 2,
   Sb: 3, Bi: 3, Cu: 2, Hg: 2, Ag: 1,
 };
-const VALENCE_DIL = { ...VALENCE_OX, Fe: 2 };
+
+// Для разбавленных / неокислительных кислот: Fe и Cr дают +2
+const VALENCE_NONOX = { ...VALENCE_OX, Fe: 2, Cr: 2 };
 
 const idx = (m) => SERIES.indexOf(m);
 
-export function isMetalSymbol(s) {
-  return idx(s) >= 0 && s !== 'H';
+function capMetal(s) {
+  const t = String(s ?? '').trim();
+
+  if (!t) return '';
+
+  return t[0].toUpperCase() + t.slice(1).toLowerCase();
 }
 
-// ===== Распознавание кислоты с учётом суффикса k =====
+export function isMetalSymbol(s) {
+  const m = capMetal(s);
+
+  return idx(m) >= 0 && m !== 'H';
+}
+
+// ===== Распознавание кислоты с суффиксами k / och_p =====
 function parseAcid(f) {
   const raw = String(f ?? '').trim();
   let formula = raw;
   let concMarked = false;
   let veryDilMarked = false;
 
-  // Проверяем суффиксы от самого длинного к короткому,
-  // чтобы 'och_p' (5 символов) распознался раньше, чем случайный 'p'.
   if (/och_p$/i.test(raw)) {
     formula = raw.slice(0, -5);
     veryDilMarked = true;
@@ -43,144 +64,145 @@ function parseAcid(f) {
     concMarked = true;
   }
 
-  if (formula === 'H2SO4') return { acid: 'H2SO4', displayFormula: raw, concMarked, veryDilMarked };
-  if (formula === 'HNO3')  return { acid: 'HNO3',  displayFormula: raw, concMarked, veryDilMarked };
+  const up = formula.toUpperCase();
+  const CANON = { H2SO4: 'H2SO4', HNO3: 'HNO3', HCL: 'HCl', HBR: 'HBr', H3PO4: 'H3PO4' };
+  const acid = CANON[up];
 
-  return null;
+  if (!acid) return null;
+
+  return {
+    acid,
+    displayFormula: acid + (veryDilMarked ? 'och_p' : concMarked ? 'k' : ''),
+    concMarked,
+    veryDilMarked,
+  };
 }
 
 const HEAT = /(t|°|нагр)/;
 
 // =====================================================
-// ГЛАВНАЯ ФУНКЦИЯ
+// ГЛАВНАЯ ФУНКЦИЯ: строит ОДНО уравнение
 // =====================================================
 export function buildMetalAcidReaction(input1, input2, condition = '', userValence = null) {
   const cond = String(condition ?? '').toLowerCase();
   const f1 = String(input1 ?? '').trim();
   const f2 = String(input2 ?? '').trim();
 
-  // Кто металл, кто кислота (кислота теперь в виде H2SO4k/HNO3k)
+  // ===== Определяем металл и кислоту =====
   let metal = null;
   let acidInfo = null;
   const a1 = parseAcid(f1);
   const a2 = parseAcid(f2);
 
-  if (a1 && isMetalSymbol(f2)) { acidInfo = a1; metal = f2; }
-  else if (a2 && isMetalSymbol(f1)) { acidInfo = a2; metal = f1; }
-  else return null;
+  if (a1 && isMetalSymbol(f2)) {
+    acidInfo = a1;
+    metal = capMetal(f2);
+  } else if (a2 && isMetalSymbol(f1)) {
+    acidInfo = a2;
+    metal = capMetal(f1);
+  } else {
+    return null;
+  }
 
   if (metal === 'Pt' || metal === 'Au') {
-    return { occurs: false, reason: `${metal} с этой кислотой не реагирует.` };
+    return {
+      occurs: false,
+      reason: `${metal} — благородный металл, с кислотами не реагирует.`,
+    };
   }
 
   const pos = idx(metal);
   const beforeAl = pos < idx('Al');
-  const beforeH  = pos < idx('H');
+  const beforeH = pos < idx('H');
 
-    // ===== ОПРЕДЕЛЕНИЕ КОНЦЕНТРАЦИИ =====
-  // Приоритет: явное условие > суффикс och_p > суффикс k > значение по умолчанию
+  // ===== Уровень концентрации: суффикс решает =====
   const explicitVeryDil = cond.includes('оч');
   const explicitConc = cond.includes('конц');
-  const explicitDil = cond.includes('разб') && !cond.includes('оч');
 
-  let concLevel; // 'conc' | 'dil' | 'verydil'
+  let concLevel;
   let note = '';
 
-  if (explicitVeryDil) {
+  if (explicitVeryDil || acidInfo.veryDilMarked) {
     concLevel = 'verydil';
-    note = 'очень разбавленная кислота (указано в условии)';
-  } else if (acidInfo.veryDilMarked) {
-    concLevel = 'verydil';
-    note = `очень разбавленная кислота (маркировка "${acidInfo.displayFormula}")`;
-  } else if (explicitConc) {
+    note = 'очень разбавленная кислота';
+  } else if (explicitConc || acidInfo.concMarked) {
     concLevel = 'conc';
-    note = 'концентрированная кислота (указано в условии)';
-  } else if (acidInfo.concMarked) {
-    concLevel = 'conc';
-    note = `концентрированная кислота (маркировка "${acidInfo.displayFormula}")`;
-  } else if (explicitDil) {
-    concLevel = 'dil';
-    note = 'разбавленная кислота (указано в условии)';
+    note = 'концентрированная кислота';
   } else {
-    // Значения по умолчанию
-    if (acidInfo.acid === 'H2SO4') {
-      concLevel = 'dil';
-      note = 'принята разбавленной (для конц. используйте H2SO4k)';
-    } else {
-      concLevel = 'dil';
-      note = 'принята разбавленной (для оч. разб. используйте HNO3och_p)';
-    }
+    concLevel = 'dil';
+    note = 'разбавленная кислота';
   }
+
+  const isNonOx = NONOX.has(acidInfo.acid);
+  const isH2SO4 = acidInfo.acid === 'H2SO4';
+  const isHNO3 = acidInfo.acid === 'HNO3';
 
   let products = null;
-  let anion = null;
-  let anionCharge = 0;
 
-  // ================= H2SO4 =================
-  if (acidInfo.acid === 'H2SO4') {
-    anion = 'SO4';
-    anionCharge = 2;
-
-    if (concLevel === 'conc') {
-      if (PASSIVATING.has(metal) && !HEAT.test(cond)) {
-        return {
-          occurs: false,
-          reason: `${metal} пассивируется концентрированной H2SO4 на холоду. Добавьте условие t°.`,
-        };
-      }
-      if (pos <= idx('Zn')) {
-        products = [cond.includes('h2s') ? 'H2S' : cond.includes(' s') ? 'S' : 'H2S', 'H2O'];
-      } else {
-        products = ['SO2', 'H2O'];
-      }
-    } else {
-      if (!beforeH) {
-        return { occurs: false, reason: `${metal} стоит после водорода — с разбавленной H2SO4 не реагирует.` };
-      }
-      products = ['H2'];
+  // ================= ВЕТКА: СОЛЬ + ВОДОРОД =================
+  // Работает для неокислителей (HCl, HBr, H3PO4) и разб. H2SO4
+  if (isNonOx || (isH2SO4 && concLevel === 'dil')) {
+    if (!beforeH) {
+      return {
+        occurs: false,
+        reason: `${metal} стоит в ряду активности после водорода, поэтому водород из ${acidInfo.acid} не вытесняется — реакция не идёт.`,
+      };
     }
+    products = ['H2'];
+    note = 'металл до водорода: идёт вытеснение H2';
+  }
+  // ================= H2SO4 конц. =================
+  else if (isH2SO4 && concLevel === 'conc') {
+    if (PASSIVATING.has(metal) && !HEAT.test(cond)) {
+      return {
+        occurs: false,
+        reason: `${metal} пассивируется конц. H2SO4 на холоду. Добавьте t°.`,
+      };
+    }
+    if (pos <= idx('Zn')) {
+      products = [
+        cond.includes('h2s') ? 'H2S' : cond.includes(' s') ? 'S' : 'H2S',
+        'H2O',
+      ];
+    } else {
+      products = ['SO2', 'H2O'];
+    }
+    note = 'концентрированная кислота: сера восстанавливается';
   }
   // ================= HNO3 =================
-  else {
-    anion = 'NO3';
-    anionCharge = 1;
-
+  else if (isHNO3) {
     if (concLevel === 'verydil') {
       products = ['NH4NO3', 'H2O'];
+      note = 'очень разбавленная кислота: азот до аммония';
     } else if (concLevel === 'conc') {
       if (PASSIVATING.has(metal) && !HEAT.test(cond)) {
         return {
           occurs: false,
-          reason: `${metal} пассивируется концентрированной HNO3 на холоду. Добавьте условие t°.`,
+          reason: `${metal} пассивируется конц. HNO3 на холоду. Добавьте t°.`,
         };
       }
       products = [beforeAl ? 'N2O' : 'NO2', 'H2O'];
+      note = 'концентрированная кислота';
     } else {
-      // dil
-      if (beforeAl) {
-        products = [cond.includes('nh4') ? 'NH4NO3' : 'N2', 'H2O'];
-      } else {
-        products = ['NO', 'H2O'];
-      }
+      products = [beforeAl ? (cond.includes('nh4') ? 'NH4NO3' : 'N2') : 'NO', 'H2O'];
+      note = 'разбавленная кислота';
     }
   }
 
-  // Валентность в соли
-  const diluteH2SO4 = acidInfo.acid === 'H2SO4' && concLevel === 'dil';
-  const v = userValence ?? (diluteH2SO4 ? VALENCE_DIL[metal] : VALENCE_OX[metal]) ?? 2;
+  if (!products) return null;
+
+  // ===== Собираем соль и балансируем =====
+  const [anion, anionCharge] = ACID_ANION[acidInfo.acid];
+  const useNonOxValence = isNonOx || (isH2SO4 && concLevel === 'dil');
+  const v = userValence ?? (useNonOxValence ? VALENCE_NONOX[metal] : VALENCE_OX[metal]) ?? 2;
 
   const salt = ionFormula(metal, v, anion, anionCharge);
-
-  // ВАЖНО: в левой части уравнения используем исходную формулу с 'k',
-  // чтобы пользователь видел, что реакция идёт с концентрированной кислотой.
-  const acidDisplay = acidInfo.displayFormula;
-
   const rightF = [salt, ...products];
   const coeffs = balanceEquation([metal, acidInfo.acid], rightF, 12);
 
   if (!coeffs) return null;
 
-  const leftText = [metal, acidDisplay]
+  const leftText = [metal, acidInfo.displayFormula]
     .map((f, i) => (coeffs[i] > 1 ? `${coeffs[i]}${f}` : f))
     .join(' + ');
   const rightText = rightF
@@ -192,6 +214,16 @@ export function buildMetalAcidReaction(input1, input2, condition = '', userValen
     molecular: `${leftText} --> ${rightText}`,
     leftText,
     rightText,
-    reason: `Реакция составлена по схеме взаимодействия ${acidInfo.acid} с металлами (${note}).`,
+    reason: `Реакция составлена по схеме ${acidInfo.acid} + металл (${note}).`,
   };
+}
+
+// =====================================================
+// ОБЁРТКА: массив успешных вариантов (для добавления строк)
+// Теперь использует ТОТ ЖЕ код, что и одиночная функция.
+// =====================================================
+export function buildMetalAcidReactions(input1, input2, condition = '', userValence = null) {
+  const result = buildMetalAcidReaction(input1, input2, condition, userValence);
+
+  return result && result.occurs ? [result] : [];
 }

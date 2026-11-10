@@ -1,5 +1,12 @@
 import { buildExchangeReaction } from './ExchangeReaction';
 import { buildMetalAcidReaction } from './MetalAcidReaction';
+import { buildOxideReaction } from './OxideAcidBaseReaction';
+
+let lastRejection = null;
+
+export function getLastRejection() {
+  return lastRejection;
+}
 
 function normalizeText(value) {
   return String(value ?? '')
@@ -36,16 +43,6 @@ export const REACTIONS = {
   'Cu(OH)2': 'Cu(OH)2 --> CuO + H2O',
   'Fe(OH)3': '2Fe(OH)3 --> Fe2O3 + 3H2O',
   'Ca3(PO4)2': 'Ca3(PO4)2 --> 3CaO + P2O5',
-  // Нейтрализация
-  HClNaOH: 'HCl + NaOH --> NaCl + H2O',
-  H2SO4NaOH: 'H2SO4 + 2NaOH --> Na2SO4 + 2H2O',
-  HNO3KOH: 'HNO3 + KOH --> KNO3 + H2O',
-  H3PO4NaOH: 'H3PO4 + 3NaOH --> Na3PO4 + 3H2O',
-  // реакции обмена
-  BaCl2H2SO4: 'BaCl2 + H2SO4 --> BaSO4 + 2HCl',
-  CaCl2AgNO3: 'CaCl2 + 2AgNO3 --> Ca(NO3)2 + 2AgCl',
-  NaClAgNO3: 'NaCl + AgNO3 --> AgCl + NaNO3',
-  CaCO3HCl: 'CaCO3 + 2HCl --> CaCl2 + CO2 + H2O',
   P2O5NaOH: 'P2O5 + 5NaOH --> Na3PO4 + Na2HPO4 + 2H2O',
   // ХРОМ 
   K2CrO4HCl: '2K2CrO4 + 16HCl --> 2CrCl3 + 3Cl2 + 4KCl + 8H2O',
@@ -117,7 +114,6 @@ export const REACTIONS = {
   CuSO2: '2CuS + 3O2 --> 2CuO + 2SO2',
   Cr2S3O2: '2Cr2S3 + 9O2 --> 2Cr2O3 + 6SO2',
   ZnSO2: '2ZnS + 3O2 --> 2SO2 + 2ZnO',
-  ZnH2SO4: '4Zn + 5H2SO4 --> 4ZnSO4 + H2S + 4H2O',
   MgH2SO4: '3Mg + 4H2SO4 --> 3MgSO4 + S + 4H2O',
   CuH2SO4: '2H2SO4 + Cu --> CuSO4 + SO2 + 2H2O',
   PH2SO4: '5H2SO4 + 2P --> 2H3PO4 + 5SO2 + 2H2O',
@@ -150,13 +146,6 @@ export const REACTIONS = {
   I2Cl2H2O: 'I2 + 5Cl2 + 6H2O --> 2HIO3 + 10HCl',
   Br2HClOH2O: 'Br2 + 5HClO + H2O --> 2HBrO3 + 5HCl',
   
-  // Металлы + кислоты
-  AgHNO3: '3Ag + 4HNO3 --> 3AgNO3 + NO + 2H2O',
-  AgH2SO4: '2Ag + 2H2SO4 --> Ag2SO4 + 2H2O + SO2',
-  FeHCl: 'Fe + 2HCl --> FeCl2 + H2',
-  HClZn: 'Zn + 2HCl --> ZnCl2 + H2',
-  H2SO4HI: 'H2SO4 + 8HI --> 4I2 + H2S + 4H2O',
-  
   // Окислительно-восстановительные с участием Mn, Cr, Fe
   FeSO4KMnO4H2SO4: '10FeSO4 + 2KMnO4 + 8H2SO4 --> 5Fe2(SO4)3 + 2MnSO4 + K2SO4 + 8H2O',
   FeSO4K2Cr2O7H2SO4: '6FeSO4 + K2Cr2O7 + 7H2SO4 --> 3Fe2(SO4)3 + Cr2(SO4)3 + 7H2O + K2SO4',
@@ -184,8 +173,7 @@ export const REACTIONS = {
   MgO2: '2Mg + O2 --> 2MgO',
   P4NaOHH2O: 'P4 + 3NaOH + 3H2O --> 3NaH2PO2 + PH3',
   
-  // Разложение
-  'CuSO4*5H2O': 'CuSO4*5H2O --> CuSO4 + 5H2O',
+  
   // ОРГАНИКА
   Al4C3H2O: 'Al4C3 + 12H2O --> 3CH4 + 4Al(OH)3',
   CaC2H2O: 'CaC2 + 2H2O --> C2H2 + Ca(OH)2',
@@ -236,9 +224,7 @@ export const REACTIONS = {
   KClO3KClO4: '4KClO3 --> 3KClO4 + KCl',
   KClO3O2: '2KClO3 --> 2KCl + 3O2',
   
-  // Обменные и качественные реакции
-  CuSO4NaOH: 'CuSO4 + 2NaOH --> Cu(OH)2 + Na2SO4',
-  'Ca(OH)2H3PO4': '3Ca(OH)2 + 2H3PO4 --> Ca3(PO4)2 + 6H2O',
+  // качественные реакции
   AlH2ONaOH: '2Al + 2NaOH + 6H2O --> 2Na[Al(OH)4] + 3H2',
   
   // Металлотермия и восстановление
@@ -248,7 +234,6 @@ export const REACTIONS = {
   
   // Особые случаи
   AuCl3H2O2KOH: '2AuCl3 + 3H2O2 + 6KOH --> 2Au + 3O2 + 6KCl + 6H2O',
-  CuSHNO3p: '3CuS + 14HNO3 --> 3Cu(NO3)2 + 3H2SO4 + 8NO + 4H2O',
 };
 
 // ===== Получить уравнение по ключу =====
@@ -351,9 +336,15 @@ function valenceFromKey(key) {
   return m && m[1] ? m[1].toLowerCase() : null;
 }
 
+function sideToText(side) {
+  return side.map((item) => (item.coefficient > 1 ? `${item.coefficient}${item.formula}` : item.formula)).join(' + ');
+}
+
 // ===== Поиск реакции по списку реагентов =====
 export function findReactionByReactants(reactants = [], catalyst = null) {
   const clean = reactants.map((r) => String(r ?? '').trim()).filter(Boolean);
+  
+  lastRejection = null;
 
   if (clean.length === 0) return null;
 
@@ -441,9 +432,9 @@ export function findReactionByReactants(reactants = [], catalyst = null) {
           molecular: auto.molecular,
         };
       }
+      if (auto && !auto.occurs && auto.reason) lastRejection = auto.reason;
 
       // ===== АВТОПОСТРОЕНИЕ МЕТАЛЛ + КИСЛОТА =====
-      // Если обмен не сработал — пробуем H2SO4 или HNO3
       const redox = buildMetalAcidReaction(f1, f2, catalyst, userValence);
 
       if (redox && redox.occurs) {
@@ -457,8 +448,37 @@ export function findReactionByReactants(reactants = [], catalyst = null) {
           molecular: redox.molecular,
         };
       }
+      if (redox && !redox.occurs && redox.reason) lastRejection = redox.reason;
+
+      /// ===== АВТОПОСТРОЕНИЕ: ОКСИД + КИСЛОТА / ЩЁЛОЧЬ =====
+      const oxide = buildOxideReaction(f1, f2);
+
+      if (oxide && oxide.occurs) {
+        return {
+          key: 'auto',
+          leftText: oxide.leftText,
+          rightText: oxide.rightText,
+          catalyst: '',
+          auto: true,
+          reason: oxide.reason,
+          molecular: oxide.molecular,
+        };
+      }
+      if (oxide && !oxide.occurs && oxide.reason) lastRejection = oxide.reason;
+    }
+    if (!lastRejection) {
+      lastRejection =
+        'не удалось распознать пару реагентов — проверьте формулы.';
     }
 
     return null;
   }
+
+  // ===== РЕАКЦИЯ НАЙДЕНА В СЛОВАРЕ — возвращаем её =====
+  return {
+    key: best.key,
+    leftText: sideToText(best.parsed.left),
+    rightText: sideToText(best.parsed.right),
+    catalyst: best.condition || '',
+  };
 }

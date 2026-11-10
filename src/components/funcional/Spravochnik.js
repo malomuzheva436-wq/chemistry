@@ -85,8 +85,6 @@ export const FORMULA_VALUES = [
   //кислоты
   'HF',
   'HCl',
-  'HClk',
-  'HClp',
   'HBr',
   'HI',
   'H2S',
@@ -682,7 +680,7 @@ export const FORMULA_VALUES = [
   'C6H13COH',
   'C6H13COOH',
   //альдегиды
-  'HCOH',
+  'CH2O',
   //бензол и производные
   'C6H6',
   'C6H5OH',
