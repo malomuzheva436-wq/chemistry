@@ -198,7 +198,7 @@ export function buildMetalAcidReaction(input1, input2, condition = '', userValen
 
   const salt = ionFormula(metal, v, anion, anionCharge);
   const rightF = [salt, ...products];
-  const coeffs = balanceEquation([metal, acidInfo.acid], rightF, 12);
+  const coeffs = balanceEquation([metal, acidInfo.acid], rightF, 20);
 
   if (!coeffs) return null;
 

@@ -1,6 +1,7 @@
 import { buildExchangeReaction } from './ExchangeReaction';
 import { buildMetalAcidReaction } from './MetalAcidReaction';
 import { buildOxideReaction } from './OxideAcidBaseReaction';
+import { buildMetalSaltReaction } from './MetalSaltReaction';
 
 let lastRejection = null;
 
@@ -23,7 +24,7 @@ export const REACTION_CONDITIONS = {
 };
 
 export const REACTIONS = {
-  // ПРОСТЫЕ РЕАКЦИИ (горение, разложение, нейтрализация)
+  // горение
   H2O2: '2H2 + O2 --> 2H2O',
   H2Cl2: 'H2 + Cl2 --> 2HCl',
   H2N2: '3H2 + N2 --> 2NH3',
@@ -34,6 +35,11 @@ export const REACTIONS = {
   C2H6O2: '2C2H6 + 7O2 --> 4CO2 + 6H2O',
   C2H4O2: 'C2H4 + 3O2 --> 2CO2 + 2H2O',
   C2H2O2: '2C2H2 + 5O2 --> 4CO2 + 2H2O',
+  SO2: 'S + O2 --> SO2',
+  FeO2: '4Fe + 3O2 --> 2Fe2O3',
+  AlO2: '4Al + 3O2 --> 2Al2O3',
+  O2PbS: '2PbS + 3O2 --> 2PbO + 2SO2',
+  C2H2O2C: '2C2H2 + 3O2 --> 2CO2 + 2H2O + 2C',
   // Разложение
   KNO3: '2KNO3 --> 2KNO2 + O2',
   KMnO4: '2KMnO4 --> K2MnO4 + MnO2 + O2',
@@ -63,7 +69,7 @@ export const REACTIONS = {
   K2MnO4HClk: 'K2MnO4 + 8HCl --> MnCl2 + 2Cl2 + 4H2O + 2KCl',
   K2MnO4H2O: '3K2MnO4 + 2H2O --> 2KMnO4 + MnO2 + 4KOH',
   K2MnO4Cl2: '2K2MnO4 + Cl2 --> 2KMnO4 + 2KCl',
-  // ПЕРОКСИД ВОДОРОДА (из PDF)
+  // ПЕРОКСИД ВОДОРОДА
   H2O2HI: '2HI + H2O2 --> I2 + 2H2O',
   H2O2KI: '2KI + H2O2 --> I2 + 2KOH',
   H2O2NaIH2SO4: '2NaI + H2O2 + H2SO4 --> I2 + Na2SO4 + 2H2O',
@@ -77,7 +83,7 @@ export const REACTIONS = {
   H2O2Ag2O: 'H2O2 + Ag2O --> O2 + 2Ag + H2O',
   H2O2Cl2: 'H2O2 + Cl2 --> O2 + 2HCl',
   'H2O2Ca(ClO)2': '2H2O2 + Ca(ClO)2 --> 2O2 + CaCl2 + 2H2O',
-  // ХЛОР (из PDF)
+  // ХЛОР
   HClOHI: 'HClO + 2HI --> HCl + I2 + H2O',
   HClOH2O2: 'HClO + H2O2 --> HCl + H2O + O2',
   NaClOHCl: 'NaClO + 2HCl --> NaCl + Cl2 + H2O',
@@ -153,7 +159,6 @@ export const REACTIONS = {
   Cr2O3NaNO3NaOH: 'Cr2O3 + 3NaNO3 + 4NaOH --> 2Na2CrO4 + 3NaNO2 + 2H2O',
   
   // Сульфиды, сульфиты, тиосульфат
-  Cu2SHNO3: '3Cu2S + 22HNO3 --> 6Cu(NO3)2 + 3H2SO4 + 10NO + 8H2O',
   FeS2O2: '4FeS2 + 11O2 --> 8SO2 + 2Fe2O3',
   Na2S2O3I2: '2Na2S2O3 + I2 --> Na2S4O6 + 2NaI',
   
@@ -161,17 +166,12 @@ export const REACTIONS = {
   NH3O2: '4NH3 + 5O2 --> 4NO + 6H2O',
   '(NH4)2Cr2O7': '(NH4)2Cr2O7 --> N2 + 4H2O + Cr2O3',
   I2HNO3p: '3I2 + 10HNO3 --> 6HIO3 + 10NO + 2H2O',
-  AsH3HNO3: 'AsH3 + 8HNO3 --> H3AsO4 + 8NO2 + 4H2O',
   
-  // Обменные и качественные реакции
+  // качественные реакции
   CuSO4Fe: 'Fe + CuSO4 --> Cu + FeSO4',
   CuSO4KI: '4KI + 2CuSO4 --> 2CuI + I2 + 2K2SO4',
   'Cu(NO3)2K3[Fe(CN)6]': '3Cu(NO3)2 + 2K3[Fe(CN)6] --> Cu3[Fe(CN)6]2 + 6KNO3',
   Na2B4O7HClH2O: 'Na2B4O7 + 2HCl + 5H2O --> 4H3BO3 + 2NaCl',
-  
-  // Магний, фосфор
-  MgO2: '2Mg + O2 --> 2MgO',
-  P4NaOHH2O: 'P4 + 3NaOH + 3H2O --> 3NaH2PO2 + PH3',
   
   
   // ОРГАНИКА
@@ -183,22 +183,8 @@ export const REACTIONS = {
   C2H4H2O: 'C2H4 + H2O --> C2H5OH',
   C2H5OHO2: 'C2H5OH + 3O2 --> 2CO2 + 3H2O',
   // Горение и окисление простых веществ
-  SO2: 'S + O2 --> SO2',
-  FeO2: '4Fe + 3O2 --> 2Fe2O3',
-  AlO2: '4Al + 3O2 --> 2Al2O3',
-  O2PbS: '2PbS + 3O2 --> 2PbO + 2SO2',
-  C2H2O2C: '2C2H2 + 3O2 --> 2CO2 + 2H2O + 2C',
   CO2H2O: '6CO2 + 6H2O --> C6H12O6 + 6O2',
   
-  // Металлы + кислоты
-  AlHCl: '2Al + 6HCl --> 2AlCl3 + 3H2',
-  HClMg: 'Mg + 2HCl --> MgCl2 + H2',
-  FeH2SO4: 'Fe + H2SO4 --> FeSO4 + H2',
-  ZnHNO3NO: '3Zn + 8HNO3 --> 3Zn(NO3)2 + 2NO + 4H2O',
-  FeHNO3II: '3Fe + 8HNO3 --> 3Fe(NO3)2 + 2NO + 4H2O',
-  MgHNO3: '4Mg + 10HNO3 --> 4Mg(NO3)2 + N2O + 5H2O',
-  HNO3Pb: '3Pb + 8HNO3 --> 3Pb(NO3)2 + 2NO + 4H2O',
-  HgHNO3: '3Hg + 8HNO3 --> 3Hg(NO3)2 + 2NO + 4H2O',
   
   // ОВР с марганцем, хромом, железом, иодом
   FeSO4H2SO4HNO3: '6FeSO4 + 2HNO3 + 3H2SO4 --> 3Fe2(SO4)3 + 2NO + 4H2O',
@@ -209,11 +195,6 @@ export const REACTIONS = {
   H2SO4K2Cr2O7SO2: '3SO2 + K2Cr2O7 + H2SO4 --> Cr2(SO4)3 + K2SO4 + H2O',
   H2SHIO3: '5H2S + 2HIO3 --> I2 + 5S + 6H2O',
   H2SO4MnO2NaCl: '4NaCl + 2H2SO4 + MnO2 --> Cl2 + MnCl2 + 2Na2SO4 + 2H2O',
-  
-  // Мышьяк и сурьма
-  As2S3H2OHNO3: '3As2S3 + 28HNO3 + 4H2O --> 6H3AsO4 + 9H2SO4 + 28NO',
-  As2O3H2OHNO3: '3As2O3 + 4HNO3 + 7H2O --> 6H3AsO4 + 4NO',
-  Br2KOHSb2O3: 'Sb2O3 + 2Br2 + 10KOH --> 2K3SbO4 + 4KBr + 5H2O',
   
   // Галогены и их диспропорционирование
   Br2KOH: '3Br2 + 6KOH --> 5KBr + KBrO3 + 3H2O',
@@ -465,7 +446,23 @@ export function findReactionByReactants(reactants = [], catalyst = null) {
         };
       }
       if (oxide && !oxide.occurs && oxide.reason) lastRejection = oxide.reason;
+      // ===== АВТОПОСТРОЕНИЕ: МЕТАЛЛ + СОЛЬ =====
+      const metalSalt = buildMetalSaltReaction(f1, f2);
+
+      if (metalSalt && metalSalt.occurs) {
+        return {
+          key: 'auto',
+          leftText: metalSalt.leftText,
+          rightText: metalSalt.rightText,
+          catalyst: '',
+          auto: true,
+          reason: metalSalt.reason,
+          molecular: metalSalt.molecular,
+        };
+      }
+      if (metalSalt && !metalSalt.occurs && metalSalt.reason) lastRejection = metalSalt.reason;
     }
+    
     if (!lastRejection) {
       lastRejection =
         'не удалось распознать пару реагентов — проверьте формулы.';

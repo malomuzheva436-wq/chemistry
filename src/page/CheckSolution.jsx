@@ -1,18 +1,29 @@
 import React, { useRef, useState } from 'react';
+import {checkSolutionByAI} from '../components/funcional/AiChecker'
 import './CheckSolution.css';
+import { formulaToSubscript } from '../components/funcional/FormatFormul';
 
 export default function CheckSolution() {
   const inputRef = useRef(null);
   const [photo, setPhoto] = useState(null);     // сам файл
   const [preview, setPreview] = useState(null); // ссылка для показа
   const [drag, setDrag] = useState(false);
-  const [result, setResult] = useState(null);   // { ok, text } или { stub, text }
-
+  const [result, setResult] = useState(null);   // { verdict, errors, summary } | { nokey, ... } | { error, ... }
+  const [checking, setChecking] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('ht_ya_key') || '');
+  const [folderId, setFolderId] = useState(() => localStorage.getItem('ht_ya_folder') || '');
+  const pretty = (text) =>
+    formulaToSubscript(
+      String(text)
+        .replace(/->/g, ' → ')
+        .replace(/\*/g, '·')
+    );
   const acceptFile = (file) => {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setResult({ ok: false, text: 'Можно загружать только изображения (PNG, JPG).' });
+      setResult({ verdict: 'error', errors: [], summary: 'Можно загружать только изображения (PNG, JPG).' });
       return;
     }
 
@@ -27,19 +38,67 @@ export default function CheckSolution() {
     acceptFile(e.dataTransfer.files?.[0]);
   };
 
-  const handleCheck = () => {
-    if (!photo) return;
+  const handleCheck = async () => {
+    if (!photo || checking) return;
 
-    // ЗАГЛУШКА: сюда на следующем шаге встанет распознавание и сверка с эталоном
-    setResult({
-      stub: true,
-      text: `Фото «${photo.name}» получено. Модуль распознавания и сверки будет подключён следующим шагом.`,
-    });
+    if (!apiKey.trim() || !folderId.trim()) {
+      setShowKey(true);
+      setResult({
+        verdict: 'nokey',
+        errors: [],
+        summary: 'Укажи API-ключ и folderId Yandex Cloud. Они хранятся только в твоём браузере и не передаются никуда, кроме сервиса проверки.',
+      });
+      return;
+    }
+
+    setChecking(true);
+    setResult(null);
+
+    try {
+      const answer = await checkSolutionByAI(photo, apiKey.trim(), folderId.trim());
+      setResult(answer);
+    } catch (e) {
+      setResult({ verdict: 'error', errors: [], summary: e.message });
+    } finally {
+      setChecking(false);
+    }
   };
 
   return (
     <div className="check-wrap">
       <p className="check-caption">Загрузи фотографию — и решение будет проверено.</p>
+
+      {/* ===== Ключи Yandex Cloud ===== */}
+      <div className="ai-key-row">
+        <button className="ai-key-toggle" onClick={() => setShowKey((v) => !v)}>
+          {showKey ? 'Скрыть настройки ИИ' : 'Настройки ИИ (ключи)'}
+        </button>
+
+        {showKey && (
+          <>
+            <input
+              className="ai-key-input"
+              type="password"
+              placeholder="API-ключ (AQVN…)"
+              value={apiKey}
+              onChange={(e) => {
+                setApiKey(e.target.value);
+                localStorage.setItem('ht_ya_key', e.target.value);
+              }}
+            />
+            <input
+              className="ai-key-input"
+              type="text"
+              placeholder="folderId (b1g…)"
+              value={folderId}
+              onChange={(e) => {
+                setFolderId(e.target.value);
+                localStorage.setItem('ht_ya_folder', e.target.value);
+              }}
+            />
+          </>
+        )}
+      </div>
 
       <div
         className={drag ? 'upload-zone drag' : 'upload-zone'}
@@ -62,8 +121,8 @@ export default function CheckSolution() {
         />
       </div>
 
-      <button className="check-btn" disabled={!photo} onClick={handleCheck}>
-        Проверить решение
+      <button className="check-btn" disabled={!photo || checking} onClick={handleCheck}>
+        {checking ? 'ИИ проверяет решение…' : 'Проверить решение'}
       </button>
 
       <div className="check-result">
@@ -72,15 +131,30 @@ export default function CheckSolution() {
             Здесь появится подтверждение, что решение правильное,
             или опровержение с указанием, в чём ошибки.
           </p>
-        ) : result.stub ? (
-          <p className="result-stub">{result.text}</p>
-        ) : result.ok ? (
-          <p className="result-ok">Решение правильное! Так держать.</p>
+        ) : result.verdict === 'correct' ? (
+          <p className="result-ok">✔ Решение правильное! ИИ не нашёл ни арифметических, ни логических ошибок.</p>
+        ) : result.verdict === 'nokey' ? (
+          <p className="result-stub">{result.summary}</p>
+        ) : result.verdict === 'error' ? (
+          <p className="result-bad">{result.summary}</p>
         ) : (
-          <div className="result-bad">
-            <p>Решение содержит ошибки:</p>
-            <p>{result.text}</p>
-          </div>
+          <>
+            <div className="result-bad">
+              <p>
+                {result.verdict === 'incorrect'
+                  ? '✘ Решение содержит ошибки:'
+                  : '! Решение верно частично. Замечания:'}
+              </p>
+              {result.errors.length > 0 && (
+              <ul className="result-error-list">
+                {result.errors.map((err, i) => (
+                  <li key={i}>{pretty(err)}</li>
+                ))}
+              </ul>
+            )}
+            </div>
+            {result.summary && <p className="result-summary">{pretty(result.summary)}</p>}
+          </>
         )}
       </div>
     </div>
